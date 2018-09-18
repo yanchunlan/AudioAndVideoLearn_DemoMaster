@@ -1,0 +1,134 @@
+package com.example.advd.audioandvideolearn_demo_master.base_03;
+
+import android.hardware.Camera;
+import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.TextureView;
+
+import java.io.IOException;
+
+/**
+ * author: ycl
+ * date: 2018-09-18 1:00
+ * desc:
+ */
+public class VideoRecordUtil {
+    private static final String TAG = "VideoRecordUtil";
+    private Camera mCamera;
+    private boolean isPushing;
+
+    public void createCamera() {
+        mCamera = Camera.open();
+        mCamera.setDisplayOrientation(90);
+
+        /*Camera.Parameters parameters = mCamera.getParameters();
+        parameters.setPreviewFormat(ImageFormat.NV21); // 默认值也是它
+        mCamera.setParameters(parameters);*/
+
+        // 无宽高限制
+        mCamera.setPreviewCallback(new Camera.PreviewCallback() {
+            @Override
+            public void onPreviewFrame(byte[] data, Camera camera) {
+                Log.d(TAG, "onPreviewFrame: " + data);
+                if (isPushing) {
+
+                }
+            }
+        });
+
+        // 有宽高限制
+        /*byte[] data = new byte[480 * 320 * 4];
+        mCamera.addCallbackBuffer(data);
+        mCamera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+            @Override
+            public void onPreviewFrame(byte[] data, Camera camera) {
+                Log.d(TAG, "onPreviewFrame: "+data);
+            }
+        });*/
+    }
+
+    public void bindHolder(SurfaceView mSurfaceView, TextureView mTextureView) {
+        mSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                try {
+                    if (mCamera != null) {
+                        mCamera.setPreviewDisplay(holder);
+                        startPush();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                if (!isPushing) {
+                    return;
+                }
+                holder.removeCallback(this);
+                stopPush();
+            }
+        });
+
+        /*mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                try {
+                    if (mCamera != null) {
+                        mCamera.setPreviewTexture(surface);
+                        startPush();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+              if (!isPushing) {
+                    return;
+                }
+                holder.removeCallback(this);
+                stopPush();
+                return false;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+            }
+        });*/
+    }
+
+    public void startPush() {
+        isPushing = true;
+        if (mCamera != null) {
+            mCamera.startPreview();
+        }
+    }
+
+    public void stopPush() {
+        isPushing = false;
+        if (mCamera != null) {
+            mCamera.setPreviewCallback(null);// 此监听在camera关闭之前需要调用
+
+            mCamera.stopPreview();
+            mCamera.lock();
+            mCamera.release();
+            mCamera = null;
+        }
+    }
+}

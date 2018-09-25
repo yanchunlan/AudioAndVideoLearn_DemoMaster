@@ -44,6 +44,13 @@
             android:text="视频（Camera/MediaCodec）"
             android:textAllCaps="false" />
 
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MediaMuxer(混合)"
+            android:textAllCaps="false" />
+
 
     </com.google.android.flexbox.FlexboxLayout>
 </ScrollView>

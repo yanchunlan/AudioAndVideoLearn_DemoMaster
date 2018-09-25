@@ -2,14 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.advd.audioandvideolearn_demo_master">
 
-    <!--音频所需权限-->
+    <!-- 音频所需权限 -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!--视频所需权限-->
+    <!-- 视频所需权限 -->
     <uses-permission android:name="android.permission.CAMERA" />
-
-
 
     <application
         android:allowBackup="true"
@@ -27,7 +25,8 @@
         </activity>
         <activity android:name=".base_01.Base01Activity" />
         <activity android:name=".base_02.Base02Activity" />
-        <activity android:name=".base_03.Base03Activity"/>
+        <activity android:name=".base_03.Base03Activity" />
+        <activity android:name=".base_04.MediaMuxerActivity"/>
     </application>
 
 </manifest>

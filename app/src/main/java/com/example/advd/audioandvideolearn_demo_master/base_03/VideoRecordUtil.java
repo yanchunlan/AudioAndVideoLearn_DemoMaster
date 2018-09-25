@@ -2,10 +2,14 @@ package com.example.advd.audioandvideolearn_demo_master.base_03;
 
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
+
+import com.example.advd.audioandvideolearn_demo_master.base_04.H264Encoder;
 
 import java.io.IOException;
 
@@ -18,7 +22,11 @@ public class VideoRecordUtil {
     private static final String TAG = "VideoRecordUtil";
     private Camera mCamera;
     private boolean isPushing;
+    private int width=1280,height=720, frameRate = 30;
+    private H264Encoder mH264Encoder;
 
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     public void createCamera() {
         mCamera = Camera.open();
         mCamera.setDisplayOrientation(90);
@@ -29,7 +37,7 @@ public class VideoRecordUtil {
          */
         Camera.Parameters parameters = mCamera.getParameters();
         parameters.setPreviewFormat(ImageFormat.NV21); // 默认值也是它
-        parameters.setPreviewSize(1280, 720); // 设置大小
+        parameters.setPreviewSize(width, height); // 设置大小
         mCamera.setParameters(parameters);
 
 
@@ -53,6 +61,9 @@ public class VideoRecordUtil {
                 Log.d(TAG, "onPreviewFrame: "+data);
             }
         });*/
+
+
+        mH264Encoder = new H264Encoder(width, height, frameRate);
     }
 
     public void bindHolder(SurfaceView mSurfaceView, TextureView mTextureView) {
@@ -125,6 +136,10 @@ public class VideoRecordUtil {
         if (mCamera != null) {
             mCamera.startPreview();
         }
+
+        if (mH264Encoder!=null) {
+            mH264Encoder.startEncoder();
+        }
     }
 
     public void stopPush() {
@@ -136,6 +151,9 @@ public class VideoRecordUtil {
             mCamera.lock();
             mCamera.release();
             mCamera = null;
+        }
+        if (mH264Encoder != null) {
+            mH264Encoder.stopEncoder();
         }
     }
 }

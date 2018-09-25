@@ -1,5 +1,6 @@
 package com.example.advd.audioandvideolearn_demo_master.base_03;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -22,9 +23,15 @@ public class VideoRecordUtil {
         mCamera = Camera.open();
         mCamera.setDisplayOrientation(90);
 
-        /*Camera.Parameters parameters = mCamera.getParameters();
+        /**
+         * Camera Preview Callback的YUV常用格式有两种：
+         * 一个是NV21，一个是YV12。Android一般默认使用YCbCr_420_SP的格式（NV21）
+         */
+        Camera.Parameters parameters = mCamera.getParameters();
         parameters.setPreviewFormat(ImageFormat.NV21); // 默认值也是它
-        mCamera.setParameters(parameters);*/
+        parameters.setPreviewSize(1280, 720); // 设置大小
+        mCamera.setParameters(parameters);
+
 
         // 无宽高限制
         mCamera.setPreviewCallback(new Camera.PreviewCallback() {

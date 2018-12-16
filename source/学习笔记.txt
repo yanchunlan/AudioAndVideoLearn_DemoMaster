@@ -1,0 +1,9 @@
+一.音视频基础
+	音频：
+		1.AudioRecord录制
+		2.AudioTrack播放
+	视频：
+		1.camera+SurfaceView录制
+		2.mediaExtractor分割，mediaMuxer合并
+		3.mediaCodec编解码
+二.openGlES学习路径

@@ -18,7 +18,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 /**
  * author: ycl
  * date: 2018-09-25 10:10
- * desc: 编码类
+ * desc: 编码类（在主线程执行，不合理的）
  */
 public class H264Encoder {
     private static final int TIMEOUT_USER = 12000;

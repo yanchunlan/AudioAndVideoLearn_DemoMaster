@@ -5,6 +5,9 @@
 #ifndef AUDIOANDVIDEOLEARN_DEMOMASTER_RECORDBUFFER_H
 #define AUDIOANDVIDEOLEARN_DEMOMASTER_RECORDBUFFER_H
 
+/**
+ * 流式录音，2个buffer,每次录音取出一个数据存储pcm数据
+ */
 class RecordBuffer {
 public:
     short **buffer; // 16位  二级指针就是一维数组

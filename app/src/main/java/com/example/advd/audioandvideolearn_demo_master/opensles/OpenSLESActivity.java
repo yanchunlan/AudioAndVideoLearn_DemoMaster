@@ -49,6 +49,11 @@ public class OpenSLESActivity extends AppCompatActivity implements View.OnClickL
                 stopRecord();
                 mTvRecordPath.setText(Environment.getExternalStorageDirectory().getAbsolutePath() + "/opensles_record.pcm");
                 // 使用audacity播放
+                /**
+                 1. 使用Android OpenSL ES 开发：使用 OpenSL 播放 PCM 数据的demo进行播放。
+                 2. 使用 ffplay 命令播放，命令为：ffplay -f s16le -ar 44100 -ac 2 temp.pcm
+                 （命令由来：在录制代码里的参数为录制规格：PCM、2声道、44100HZ、16bit）
+                 */
                 break;
         }
     }

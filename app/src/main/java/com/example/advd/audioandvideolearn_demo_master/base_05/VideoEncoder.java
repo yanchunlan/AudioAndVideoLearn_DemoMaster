@@ -42,8 +42,8 @@ public class VideoEncoder implements Runnable {
     private long nowTimeStep;
     private boolean hasNewData = false;
 
-    private byte[] yuv;
-    private byte[] mHeadInfo = null;
+    private byte[] yuv; // rgb转换yuv临时的文件
+    private byte[] mHeadInfo = null; // 关键帧头部信息
 
 
     public VideoEncoder() {
@@ -118,7 +118,7 @@ public class VideoEncoder implements Runnable {
 
             long lt = System.currentTimeMillis() - time;
 
-            if (fpsTime > lt) { // 控制fps准时
+            if (fpsTime > lt) { // 控制fps准时  时间太快就需要等待，保证帧率一致
                 try {
                     Thread.sleep(fpsTime - lt);
                 } catch (InterruptedException e) {
@@ -172,11 +172,13 @@ public class VideoEncoder implements Runnable {
             // 获取临时数据
             byte[] temp = new byte[info.size];
             buffer.get(temp);
-            if (info.flags == MediaCodec.BUFFER_FLAG_CODEC_CONFIG) { // 不是媒体数据
+            if (info.flags == MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
+                //把编码信息保存下来，关键帧上要用
                 Log.e(TAG, "start frame");
                 mHeadInfo = new byte[info.size];
                 mHeadInfo = temp;
             } else if (info.flags % 8 == MediaCodec.BUFFER_FLAG_KEY_FRAME) {
+                //关键帧比普通帧是多了个帧头的，保存了编码的信息
                 Log.d(TAG, "info.flags ->" + info.flags);
                 Log.e(TAG, "key frame");
 
@@ -188,6 +190,7 @@ public class VideoEncoder implements Runnable {
             } else if (info.flags == MediaCodec.BUFFER_FLAG_END_OF_STREAM) {
                 Log.e(TAG, "end frame");
             } else {
+                //普通帧 写入文件
                 fos.write(temp, 0, temp.length);
             }
 
@@ -197,6 +200,9 @@ public class VideoEncoder implements Runnable {
     }
 
 
+    /**
+     *  RGBA转YUV的方法，这是最简单粗暴的方式，在使用的时候，一般不会选择在Java层，用这种方式做转换
+     */
     private void rgbaToYuv(byte[] rgba, int width, int height, byte[] yuv) {
         final int frameSize = width * height;
 
@@ -232,7 +238,7 @@ public class VideoEncoder implements Runnable {
     /**
      * 由外部写入一帧数据
      *
-     * @param data
+     * @param data   GL处理好后，readpix出来的RGBA数据喂进来，
      * @param timeStep
      */
     public void feedData(final byte[] data, final long timeStep) {

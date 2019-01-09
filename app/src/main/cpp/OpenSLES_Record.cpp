@@ -32,6 +32,8 @@ bool finish = false;
 // 录制状态监听
 void bqRecorderCallback(SLAndroidSimpleBufferQueueItf bg, void *context) {
     fwrite(recordBuffer->getNowBuffer(), 1, recorderSize, pcmFile); // 边录制边写入数据
+    LOGD("record size is %d", recorderSize);
+
     if (finish) {
         LOGD("录制完成")
         (*recordItf)->SetRecordState(recordItf, SL_RECORDSTATE_STOPPED);// 录制状态
@@ -112,7 +114,7 @@ Java_com_example_advd_audioandvideolearn_1demo_1master_opensles_OpenSLESActivity
         return;
     }
 
-    (*recordObj)->GetInterface(recordObj, SL_IID_ENGINE, &recordItf);
+    (*recordObj)->GetInterface(recordObj, SL_IID_RECORD, &recordItf);
     // 获取录音队列
     (*recordObj)->GetInterface(recordObj, SL_IID_ANDROIDSIMPLEBUFFERQUEUE,
                                &recorderBufferQueue);
@@ -127,7 +129,17 @@ Java_com_example_advd_audioandvideolearn_1demo_1master_opensles_OpenSLESActivity
 
     (*recordItf)->SetRecordState(recordItf, SL_RECORDSTATE_RECORDING);// 录制状态
 
+    if (env->ExceptionCheck()) {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        LOGE("调用异常了");
+        jclass cls_exception = env->FindClass("java/lang/Exception");
+        env->ThrowNew(cls_exception,"录音异常");
+        return;
+    }
+
     env->ReleaseStringUTFChars(path_, path);
+
 }
 
 extern "C"

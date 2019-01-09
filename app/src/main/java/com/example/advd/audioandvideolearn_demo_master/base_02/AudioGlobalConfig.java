@@ -27,5 +27,6 @@ public class AudioGlobalConfig {
     public static final int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
 
     public static final String FILE_NAME = "test.pcm";
+    public static final String FILE_DIR_NAME = "test";
 
 }

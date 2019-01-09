@@ -60,7 +60,8 @@ public class Base03Activity extends AppCompatActivity {
      */
     private boolean supportH264Codec() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            for (int i = 0; i < MediaCodecList.getCodecCount(); i++) {
+            int len = MediaCodecList.getCodecCount();
+            for (int i = 0; i <len ; i++) {
                 MediaCodecInfo codecInfo = MediaCodecList.getCodecInfoAt(i);
                 String[] types = codecInfo.getSupportedTypes();
                 for (int j = 0; j < types.length; j++) {

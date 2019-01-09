@@ -8,6 +8,7 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.example.advd.audioandvideolearn_demo_master.base_02.AudioGlobalConfig;
+import com.example.advd.audioandvideolearn_demo_master.utils.FileUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -45,13 +46,9 @@ public class AudioRecordUtil {
                 AudioFormat.ENCODING_PCM_16BIT,// 采样编码 一般是pcm编码16位
                 mMinBufferSize); // 缓冲区数据大小
 
-        mFile = new File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), AudioGlobalConfig.FILE_NAME);
-        if (!mFile.mkdir()) {
-            Log.i(TAG, "createAudioRecord:   Directory not created");
-        }
-        if (mFile.exists()) {
-            mFile.delete();
-        }
+
+        mFile = FileUtils.createTempFile(context,AudioGlobalConfig.FILE_DIR_NAME, AudioGlobalConfig.FILE_NAME);
+        // storage/emulated/0/Android/data/com.example.advd.audioandvideolearn_demo_master/files/Music/test.pcm
         Log.i(TAG, "filePath: "+mFile.getAbsolutePath());
     }
 

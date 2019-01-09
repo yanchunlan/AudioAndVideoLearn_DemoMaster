@@ -22,7 +22,7 @@ public class VideoRecordUtil {
     private static final String TAG = "VideoRecordUtil";
     private Camera mCamera;
     private boolean isPushing;
-    private int width=1280,height=720, frameRate = 30;
+    private int width = 1280, height = 720, frameRate = 30;
     private H264Encoder mH264Encoder;
 
 
@@ -46,8 +46,8 @@ public class VideoRecordUtil {
             @Override
             public void onPreviewFrame(byte[] data, Camera camera) {
                 Log.d(TAG, "onPreviewFrame: " + data);
-                if (isPushing) {
-
+                if (isPushing&&mH264Encoder!=null) {
+                    mH264Encoder.putData(data);
                 }
             }
         });
@@ -137,7 +137,7 @@ public class VideoRecordUtil {
             mCamera.startPreview();
         }
 
-        if (mH264Encoder!=null) {
+        if (mH264Encoder != null) {
             mH264Encoder.startEncoder();
         }
     }

@@ -7,6 +7,9 @@ import android.os.Build;
 import android.os.Environment;
 import android.support.annotation.RequiresApi;
 
+import com.example.advd.audioandvideolearn_demo_master.base_02.AudioGlobalConfig;
+import com.example.advd.audioandvideolearn_demo_master.utils.FileUtils;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -60,9 +63,14 @@ public class H264Encoder {
     private void createFile() {
         String path = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + fileName;
         File file = new File(path);
-        if (file.exists()) {
-            file.delete();
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+
         try {
             mOutputStream = new BufferedOutputStream(new FileOutputStream(file));
         } catch (FileNotFoundException e) {
@@ -132,30 +140,32 @@ public class H264Encoder {
                                 mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                                 outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_USER);
                             }
-
                         } catch (Throwable t) {
                             t.printStackTrace();
                         }
-                        // 停止编解码器并释放资源
-                        try {
-                            if (mMediaCodec != null) {
-                                mMediaCodec.stop();
-                                mMediaCodec.release();
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        // 关闭数据流
-                        try {
-                            if (mOutputStream != null) {
-                                mOutputStream.flush();
-                                mOutputStream.close();
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
                     }
                 }
+
+
+                // 停止编解码器并释放资源
+                try {
+                    if (mMediaCodec != null) {
+                        mMediaCodec.stop();
+                        mMediaCodec.release();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                // 关闭数据流
+                try {
+                    if (mOutputStream != null) {
+                        mOutputStream.flush();
+                        mOutputStream.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
         }).start();
     }

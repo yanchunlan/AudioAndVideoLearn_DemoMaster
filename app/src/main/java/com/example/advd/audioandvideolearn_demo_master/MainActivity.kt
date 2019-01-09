@@ -6,6 +6,7 @@ import com.example.advd.audioandvideolearn_demo_master.base_01.Base01Activity
 import com.example.advd.audioandvideolearn_demo_master.base_02.Base02Activity
 import com.example.advd.audioandvideolearn_demo_master.base_03.Base03Activity
 import com.example.advd.audioandvideolearn_demo_master.base_04.MediaMuxerActivity
+import com.example.advd.audioandvideolearn_demo_master.opensles.OpenSLESActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.startActivity
 
@@ -32,6 +33,9 @@ class MainActivity : AppCompatActivity() {
         }
         button3.setOnClickListener {
             startActivity<MediaMuxerActivity>()
+        }
+        button4.setOnClickListener {
+            startActivity<OpenSLESActivity>()
         }
     }
 

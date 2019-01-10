@@ -8,7 +8,7 @@
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 #include "RecordBuffer.h"
-#include "AndroidLog.h"
+#include "../AndroidLog.h"
 
 //  -------------------  openSLES 处理音频  start ----------------------------
 
@@ -94,7 +94,8 @@ Java_com_example_advd_audioandvideolearn_1demo_1master_opensles_OpenSLESActivity
     SLDataFormat_PCM format_pcm = {
             SL_DATAFORMAT_PCM, 2, SL_SAMPLINGRATE_44_1,
             SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
-            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT, SL_BYTEORDER_LITTLEENDIAN
+            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
+            SL_BYTEORDER_LITTLEENDIAN // 结束标识
     };
     SLDataSink audioSnk = {&loc_bq, &format_pcm};
 

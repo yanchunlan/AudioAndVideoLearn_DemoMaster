@@ -6,7 +6,8 @@ import com.example.advd.audioandvideolearn_demo_master.base_01.Base01Activity
 import com.example.advd.audioandvideolearn_demo_master.base_02.Base02Activity
 import com.example.advd.audioandvideolearn_demo_master.base_03.Base03Activity
 import com.example.advd.audioandvideolearn_demo_master.base_04.MediaMuxerActivity
-import com.example.advd.audioandvideolearn_demo_master.opensles.OpenSLESActivity
+import com.example.advd.audioandvideolearn_demo_master.opensles1.OpenSLESActivity
+import com.example.advd.audioandvideolearn_demo_master.opensles2.OpenSLES2Activity
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.startActivity
 
@@ -37,6 +38,10 @@ class MainActivity : AppCompatActivity() {
         button4.setOnClickListener {
             startActivity<OpenSLESActivity>()
         }
+        button5.setOnClickListener {
+            startActivity<OpenSLES2Activity>()
+        }
+
     }
 
     external fun stringFromJNI(): String

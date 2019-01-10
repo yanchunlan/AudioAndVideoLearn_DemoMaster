@@ -9,4 +9,7 @@
 		3.mediaCodec编解码
 	05.视频，音频的编码，解码总结
 	openSLES:音频的录制
-
+	openSLES2:音频的播放
+	    1.播放assets文件
+	    2.从C++层播放PCM数据文件
+        3.从java层获取PCM数据,SLES播放

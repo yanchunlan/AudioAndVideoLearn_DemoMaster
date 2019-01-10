@@ -1,8 +1,7 @@
-package com.example.advd.audioandvideolearn_demo_master.opensles;
+package com.example.advd.audioandvideolearn_demo_master.opensles1;
 
 import android.Manifest;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -10,7 +9,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.advd.audioandvideolearn_demo_master.MainActivity;
 import com.example.advd.audioandvideolearn_demo_master.R;
 import com.example.advd.audioandvideolearn_demo_master.base_02.AudioGlobalConfig;
 import com.example.advd.audioandvideolearn_demo_master.utils.FileUtils;

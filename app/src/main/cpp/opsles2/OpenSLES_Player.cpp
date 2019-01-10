@@ -5,6 +5,7 @@
 #include <string>
 #include "../AndroidLog.h"
 
+
 // opensles
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
@@ -16,7 +17,8 @@
 
 #include <stdio.h>
 #include <malloc.h> // 内存分配
-
+#include "WlQueue.h"
+#include "pcmdata.h"
 
 //  -------------------  openSLES 处理音频  start ----------------------------
 
@@ -98,6 +100,8 @@ void createEngine();
 
 void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf pItf_, void *pVoid);
 
+void pcmBufferCallBack2(SLAndroidSimpleBufferQueueItf pItf_, void *pVoid);
+
 void getPcmData(void **pVoid);
 
 extern "C"
@@ -178,7 +182,7 @@ void createEngine() {
     SLresult sLresult;
     sLresult = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
     sLresult = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
-    sLresult = (*engineObject)->GetInterface(engineObject, SL_IID_NULL, &engineEngine);
+    sLresult = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineEngine);
 }
 
 void release() {
@@ -261,7 +265,7 @@ Java_com_example_advd_audioandvideolearn_1demo_1master_opensles2_OpenSLES2Activi
     SLDataFormat_PCM format_pcm = {
             SL_DATAFORMAT_PCM, 2, SL_SAMPLINGRATE_44_1,
             SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
-            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
+            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT, //立体声 前左前右
             SL_BYTEORDER_LITTLEENDIAN // 结束标识
     };
     SLDataSource audioSrc = {&android_queue, &format_pcm};
@@ -270,7 +274,7 @@ Java_com_example_advd_audioandvideolearn_1demo_1master_opensles2_OpenSLES2Activi
     SLDataSink audioSnk = {&loc_outmix, NULL};
 
     // 创建播放器
-    const SLInterfaceID ids[3] = {SL_IID_SEEK, SL_IID_MUTESOLO, SL_IID_VOLUME};
+    const SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_EFFECTSEND, SL_IID_VOLUME};
     const SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
     result = (*engineEngine)->CreateAudioPlayer(engineEngine, &pcmPlayerObject, &audioSrc,
                                                 &audioSnk, 3, ids, req);
@@ -284,7 +288,7 @@ Java_com_example_advd_audioandvideolearn_1demo_1master_opensles2_OpenSLES2Activi
     (*pcmBufferQueue)->RegisterCallback(pcmBufferQueue, pcmBufferCallBack, NULL); // 缓冲区回调
 
 
-    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &fdPlayerVolume); // 得到声音控制接口
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmPlayerVolume); // 得到声音控制接口
 
     (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);// 录制状态
 
@@ -318,14 +322,98 @@ void getPcmData(void **pcm) {
 }
 
 
+// ----------------------------------------------------------------------------------------
+
+WlQueue *wlQueue = NULL;
+pthread_t playpcm;
+
+
+void pcmBufferCallBack2(SLAndroidSimpleBufferQueueItf bf, void *context) {
+    pcmData *data = wlQueue->getPcmData();
+    if (NULL != data) {
+        (*pcmBufferQueue)->Enqueue(pcmBufferQueue, data->getData(), data->getSize());
+    }
+}
+
+void *createOpenSLES(void *data) {
+    SLresult result;
+
+    // 1.创建引擎
+    createEngine();
+
+
+    // 2.创建混音器
+    const SLInterfaceID mids[1] = {SL_IID_ENVIRONMENTALREVERB};
+    const SLboolean mreq[1] = {SL_BOOLEAN_FALSE};
+    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 1, mids, mreq);
+    (void) result;
+    result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
+    (void) result;
+    result = (*outputMixObject)->GetInterface(outputMixObject, SL_IID_ENVIRONMENTALREVERB,
+                                              &outputMixEnvironmentalReverb);
+    if (SL_RESULT_SUCCESS == result) {
+        result = (*outputMixEnvironmentalReverb)->SetEnvironmentalReverbProperties(
+                outputMixEnvironmentalReverb, &reverbSettings);
+        (void) result;
+    }
+
+    // 3. 设置播放器参数和创建播放器
+    //    3.1. 配置audioSource
+    SLDataLocator_AndroidSimpleBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
+                                                            2};
+    //    设置录制规格：PCM、2声道、44100HZ、16bit
+    SLDataFormat_PCM format_pcm = {
+            SL_DATAFORMAT_PCM, 2, SL_SAMPLINGRATE_44_1,
+            SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
+            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT, //立体声 前左前右
+            SL_BYTEORDER_LITTLEENDIAN // 结束标识
+    };
+    SLDataSource audioSrc = {&android_queue, &format_pcm};
+    //    3.2. 配置 audio sink
+    SLDataLocator_OutputMix loc_outmix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
+    SLDataSink audioSnk = {&loc_outmix, NULL};
+
+
+    // 创建播放器
+    const SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_EFFECTSEND, SL_IID_VOLUME};
+    const SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+    result = (*engineEngine)->CreateAudioPlayer(engineEngine, &fdPlayerObject, &audioSrc, &audioSnk,
+                                                3, ids, req);
+
+    (*pcmPlayerObject)->Realize(pcmPlayerObject, SL_BOOLEAN_FALSE); // 实现播放器
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_PLAY, &pcmPlayerPlay); // 得到播放器接口
+
+    // 缓冲
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_BUFFERQUEUE,
+                                     &pcmBufferQueue); // 得到缓冲区接口
+    (*pcmBufferQueue)->RegisterCallback(pcmBufferQueue, pcmBufferCallBack2, NULL); // 缓冲区回调
+
+
+    (*pcmPlayerObject)->GetInterface(pcmPlayerObject, SL_IID_VOLUME, &pcmPlayerVolume); // 得到声音控制接口
+
+    (*pcmPlayerPlay)->SetPlayState(pcmPlayerPlay, SL_PLAYSTATE_PLAYING);// 录制状态
+
+
+    //  主动调用回调函数开始工作
+    pcmBufferCallBack(pcmBufferQueue, NULL);
+
+    pthread_exit(&playpcm); // 退出线程
+}
+
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_example_advd_audioandvideolearn_1demo_1master_opensles2_OpenSLES2Activity_sendPcmData(
         JNIEnv *env, jobject instance, jbyteArray data_, jint size) {
     jbyte *data = env->GetByteArrayElements(data_, NULL);
+    if (wlQueue == NULL) {
+        wlQueue = new WlQueue();
+        pthread_create(&playpcm, NULL, createOpenSLES, NULL);
+    }
+    pcmData *pData = new pcmData(reinterpret_cast<char *>(data), size);
+    wlQueue->putPcmData(pData);
 
+    LOGD("size is %d queue size is %d", size, wlQueue->getPcmDataSize());
 
-
-
-    env->ReleaseByteArrayElements(data_, data, 0);
+    env->ReleaseByteArrayElements(data_, data, 0);  // jni释放内存方法一般是release ,c++是delete ,or  ，free
 }

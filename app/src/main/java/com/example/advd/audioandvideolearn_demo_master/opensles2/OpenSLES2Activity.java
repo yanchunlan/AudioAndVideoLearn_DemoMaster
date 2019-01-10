@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -13,6 +14,7 @@ import android.widget.Toast;
 import com.example.advd.audioandvideolearn_demo_master.R;
 import com.example.advd.audioandvideolearn_demo_master.utils.PermissionUtils;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -85,7 +87,9 @@ public class OpenSLES2Activity extends AppCompatActivity implements View.OnClick
                 playAudioByOpenSL_1assets(getAssets(), "gebitaishang.mp3");
                 break;
             case R.id.btn_play_pcm: // 播放pcm
-                playAudioByOpenSL_pcm(Environment.getExternalStorageDirectory().getAbsolutePath() + "test/test.pcm");
+                String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test/test.pcm";
+                Log.d(this.getClass().getSimpleName(), "path : " + path);
+                playAudioByOpenSL_pcm(path);
                 break;
             case R.id.btn_play_javapcm:  // 从java层获取PCM数据，底层播放
                 if (!isPlaying) {
@@ -95,7 +99,7 @@ public class OpenSLES2Activity extends AppCompatActivity implements View.OnClick
                         public void run() {
                             try {
                                 InputStream in = new FileInputStream(Environment.getExternalStorageDirectory()
-                                        .getAbsolutePath() + "test/test.pcm");
+                                        .getAbsolutePath() + "/test/test.pcm");
                                 byte[] buffer = new byte[44100 * 2 * 2];
                                 int n = -1;
                                 while ((n = in.read(buffer)) != -1) {

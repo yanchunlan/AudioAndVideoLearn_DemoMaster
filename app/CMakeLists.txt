@@ -36,6 +36,8 @@ add_library( # Sets the name of the library.
 
         # Provides a relative path to your source file(s).
         src/main/cpp/opsles2/OpenSLES_Player.cpp
+        src/main/cpp/opsles2/pcmData.cpp
+        src/main/cpp/opsles2/WlQueue.cpp
         )
 
 # Searches for a specified prebuilt library and stores the path as a

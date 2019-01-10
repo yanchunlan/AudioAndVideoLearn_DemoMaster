@@ -16,8 +16,8 @@ class WlQueue {
 
 public:
     std::queue<pcmData *> queuePacket;
-    pthread_mutex_t mutexPacket;
-    pthread_cond_t condPacket;
+    pthread_mutex_t mutexPacket;  // 互斥锁
+    pthread_cond_t condPacket;  // 条件变量
 
 public:
     WlQueue();

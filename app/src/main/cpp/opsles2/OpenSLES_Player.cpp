@@ -235,6 +235,7 @@ Java_com_example_advd_audioandvideolearn_1demo_1master_opensles2_OpenSLES2Activi
         LOGE("fopen pcmPath error");
         return;
     }
+    //44100 * 2 * 2 表示：44100是频率HZ，2是立体声双通道，2是采用的16位采样即2个字节，所以总的字节数就是：44100 * 2 * 2
     out_buffer = static_cast<uint8_t *>(malloc(44100 * 2 * 2));
     SLresult result;
 

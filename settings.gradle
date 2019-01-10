@@ -1,1 +1,1 @@
-include ':app', ':es2_0_video_record'
+include ':app'

@@ -28,7 +28,8 @@
         <activity android:name=".base_03.Base03Activity" />
         <activity android:name=".base_04.MediaMuxerActivity" />
         <activity android:name=".opensles1.OpenSLESActivity" />
-        <activity android:name=".opensles2.OpenSLES2Activity"></activity>
+        <activity android:name=".opensles2.OpenSLES2Activity" />
+        <activity android:name=".videoCut.VideoCutActivity"></activity>
     </application>
 
 </manifest>

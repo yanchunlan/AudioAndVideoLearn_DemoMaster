@@ -66,5 +66,13 @@
             android:textAllCaps="false" />
 
 
+        <Button
+            android:id="@+id/button6"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="视频剪切"
+            android:textAllCaps="false" />
+
+
     </com.google.android.flexbox.FlexboxLayout>
 </ScrollView>

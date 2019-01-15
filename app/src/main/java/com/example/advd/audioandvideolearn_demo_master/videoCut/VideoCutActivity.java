@@ -87,7 +87,30 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
             String path = getRealFilePath(data.getData());
             if (path != null) {
                 Log.d(TAG, "onActivityResult: path: " + path);
-                new VideoCrop().videoCrop(path, Environment.getExternalStorageDirectory().getAbsolutePath() + "/VideoCut.mp4",
+                VideoCrop crop = new VideoCrop();
+                crop.setEncoderListener(new VideoCrop.OnEncoderListener() {
+                    @Override
+                    public void onStart() {
+                        Log.d(TAG, "onStart: ");
+                    }
+
+                    @Override
+                    public void onStop() {
+                        Log.d(TAG, "onStop: ");
+                    }
+
+                    @Override
+                    public void onProgress(int progress) {
+                        Log.d(TAG, "onProgress: "+progress);
+                    }
+
+                    @Override
+                    public void onError(String msg) {
+                        Log.d(TAG, "onError: ");
+                    }
+                });
+                crop.videoCrop(path,
+                        Environment.getExternalStorageDirectory().getAbsolutePath() + "/VideoCut.mp4",
                         2*1000000, 8*1000000);
             }
         }

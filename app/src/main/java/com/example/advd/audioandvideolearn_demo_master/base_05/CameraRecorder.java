@@ -77,7 +77,6 @@ public class CameraRecorder {
     private int convertType;
 
 
-
     public CameraRecorder() {
         fpsTime = 1000 / frameRate;
     }
@@ -114,7 +113,7 @@ public class CameraRecorder {
         vformat.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
         vformat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, frameInterval);
         // 此处需要检查颜色通道，最好是手机支持的才行
-        vformat.setInteger(MediaFormat.KEY_COLOR_FORMAT,checkColorFormat(videoMime));
+        vformat.setInteger(MediaFormat.KEY_COLOR_FORMAT, checkColorFormat(videoMime));
         mVideoEnc = MediaCodec.createEncoderByType(videoMime);
         mVideoEnc.configure(vformat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE); //设置为编码器
 
@@ -368,7 +367,7 @@ public class CameraRecorder {
 
                 mVideoEnc.releaseOutputBuffer(outIndex, false);
                 // video 多一个此处
-                outIndex=mVideoEnc.dequeueOutputBuffer(info,0);
+                outIndex = mVideoEnc.dequeueOutputBuffer(info, 0);
 
                 if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                     Log.d(TAG, "video  end");
@@ -422,38 +421,47 @@ public class CameraRecorder {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    private int checkColorFormat(String mime){
-        if(Build.MODEL.equals("HUAWEI P6-C00")){
-            convertType=DataConvert.BGRA_YUV420SP;
+    private int checkColorFormat(String mime) {
+        if (Build.MODEL.equals("HUAWEI P6-C00")) {
+            convertType = DataConvert.BGRA_YUV420SP;
             return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
         }
-        for (int i = 0; i< MediaCodecList.getCodecCount(); i++){
-            MediaCodecInfo info= MediaCodecList.getCodecInfoAt(i);
-            if(info.isEncoder()){
-                String[] types=info.getSupportedTypes();
-                for (String type:types){
-                    if(type.equals(mime)){
-                        Log.e("YUV","type-->"+type);
-                        MediaCodecInfo.CodecCapabilities c=info.getCapabilitiesForType(type);
-                        Log.e("YUV","color-->"+ Arrays.toString(c.colorFormats));
-                        for (int j=0;j<c.colorFormats.length;j++){
-                            if (c.colorFormats[j]==MediaCodecInfo.CodecCapabilities
-                                    .COLOR_FormatYUV420Planar){
-                                convertType=DataConvert.RGBA_YUV420P;
-                                return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
-                            }else if(c.colorFormats[j]==MediaCodecInfo.CodecCapabilities
-                                    .COLOR_FormatYUV420SemiPlanar){
-                                convertType=DataConvert.RGBA_YUV420SP;
-                                return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
+        int count = 0;
+        try {
+            count = MediaCodecList.getCodecCount();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (count != 0) {
+            for (int i = 0; i < MediaCodecList.getCodecCount(); i++) {
+                MediaCodecInfo info = MediaCodecList.getCodecInfoAt(i);
+                if (info.isEncoder()) {
+                    String[] types = info.getSupportedTypes();
+                    for (String type : types) {
+                        if (type.equals(mime)) {
+                            Log.e("YUV", "type-->" + type);
+                            MediaCodecInfo.CodecCapabilities c = info.getCapabilitiesForType(type);
+                            Log.e("YUV", "color-->" + Arrays.toString(c.colorFormats));
+                            for (int j = 0; j < c.colorFormats.length; j++) {
+                                if (c.colorFormats[j] == MediaCodecInfo.CodecCapabilities
+                                        .COLOR_FormatYUV420Planar) {
+                                    convertType = DataConvert.RGBA_YUV420P;
+                                    return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar;
+                                } else if (c.colorFormats[j] == MediaCodecInfo.CodecCapabilities
+                                        .COLOR_FormatYUV420SemiPlanar) {
+                                    convertType = DataConvert.RGBA_YUV420SP;
+                                    return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        convertType=DataConvert.RGBA_YUV420SP;
+        convertType = DataConvert.RGBA_YUV420SP;
         return MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar;
     }
+
     /**
      * 由外部喂入一帧数据
      *

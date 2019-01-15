@@ -85,11 +85,14 @@ public class VideoCrop {
             return;
         }
         File outputFile = new File(outputVideoPath);
-        if (!outputFile.exists()) {
-            if (encoderListener != null) {
-                encoderListener.onError("outputVideoPath not exists");
+        if (outputFile.exists()) {
+            if (!outputFile.isFile()) {
+                if (encoderListener != null) {
+                    encoderListener.onError("outputVideoPath not file");
+                }
+                return;
             }
-            return;
+            outputFile.delete();
         }
         if (startTime >= endTime) {
             if (encoderListener != null) {
@@ -121,7 +124,7 @@ public class VideoCrop {
     }
 
     private void start() {
-        Log.d(TAG, "start: startTime "+startTime+" endTime "+endTime);
+        Log.d(TAG, "start: startTime " + startTime + " endTime " + endTime);
         if (encoderListener != null) {
             encoderListener.onStart();
         }
@@ -162,11 +165,11 @@ public class VideoCrop {
                         ByteBuffer buffer = MediaCodecUtils.getOutputBuffer(videoDecoder, outIndex);
                         if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                             info.size = 0;
-//                                videoDecoder.releaseOutputBuffer(outIndex, false);
+                            videoDecoder.releaseOutputBuffer(outIndex, false);
                         }
                         if (info.size != 0) {
                             long presentationTimeUs = info.presentationTimeUs;
-                            if (presentationTimeUs >= startTime && presentationTimeUs <= endTime) {
+                            if (presentationTimeUs >= startTime) {
                                 info.presentationTimeUs = presentationTimeUs - startTime;
                                 buffer.position(info.offset);
                                 buffer.limit(info.offset + info.size);
@@ -205,7 +208,7 @@ public class VideoCrop {
                         ByteBuffer buffer = MediaCodecUtils.getOutputBuffer(videoEncode, outIndex);
                         if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                             info.size = 0;
-//                            videoDecoder.releaseOutputBuffer(outIndex, false);
+                            videoEncode.releaseOutputBuffer(outIndex, false);
                         }
                         if (info.size != 0) {
                             long presentationTimeUs = info.presentationTimeUs;
@@ -269,25 +272,25 @@ public class VideoCrop {
                     // decoder output
                     int outIndex = audioDecoder.dequeueOutputBuffer(info, 10000);
 
-                    Log.d(TAG, "run: audioDecoder  outIndex "+outIndex+" presentationTimeUs "
-                                +info.presentationTimeUs+" size "+info.size+" flag "+info.flags+" offset "+info.offset);
+                    Log.d(TAG, "run: audioDecoder  outIndex " + outIndex + " presentationTimeUs "
+                            + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
 
                     if (outIndex >= 0) {
                         ByteBuffer buffer = MediaCodecUtils.getOutputBuffer(audioDecoder, outIndex);
                         if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                             info.size = 0;
                             Log.d(TAG, "run: audioDecoder size==0");
-//                            videoDecoder.releaseOutputBuffer(outIndex, false);
+                            audioDecoder.releaseOutputBuffer(outIndex, false);
                         }
                         if (info.size != 0) {
                             Log.d(TAG, "run: audioDecoder size!=0");
                             long presentationTimeUs = info.presentationTimeUs;
-                            if (presentationTimeUs >= startTime && presentationTimeUs <= endTime) {
+                            if (presentationTimeUs >= startTime) {
                                 info.presentationTimeUs = presentationTimeUs - startTime;
                                 buffer.position(info.offset);
                                 buffer.limit(info.offset + info.size);
                                 Log.d(TAG, "run: audioDecoder presentationTimeUs "
-                                        +info.presentationTimeUs+" size "+info.size+" flag "+info.flags+" offset "+info.offset);
+                                        + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
 
                                 // encode input
                                 encodeInputBuffer(buffer, audioEncode, info);
@@ -319,15 +322,15 @@ public class VideoCrop {
                 MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
                 while (true) {
                     int outIndex = audioEncode.dequeueOutputBuffer(info, 1000);
-                    Log.d(TAG, "run: audioEncode  outIndex "+outIndex+" presentationTimeUs "
-                            +info.presentationTimeUs+" size "+info.size+" flag "+info.flags+" offset "+info.offset);
+                    Log.d(TAG, "run: audioEncode  outIndex " + outIndex + " presentationTimeUs "
+                            + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
 
                     if (outIndex >= 0) {
                         ByteBuffer buffer = MediaCodecUtils.getOutputBuffer(audioEncode, outIndex);
                         if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                             info.size = 0;
                             Log.d(TAG, "run: audioEncode size==0");
-//                            videoDecoder.releaseOutputBuffer(outIndex, false);
+                            audioEncode.releaseOutputBuffer(outIndex, false);
                         }
                         if (info.size != 0) {
                             Log.d(TAG, "run: audioEncode size!=0");
@@ -337,7 +340,7 @@ public class VideoCrop {
                                 buffer.position(info.offset);
                                 buffer.limit(info.offset + info.size);
                                 Log.d(TAG, "run: audioEncode presentationTimeUs "
-                                        +info.presentationTimeUs+" size "+info.size+" flag "+info.flags+" offset "+info.offset);
+                                        + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
                                 // write
                                 mediaMuxer.writeSampleData(audioTrackIndex, buffer, info);
                             }
@@ -396,12 +399,12 @@ public class VideoCrop {
 
     private void extractorInputBuffer(MediaExtractor mediaExtractor, MediaCodec mediaCodec) {
         int inputIndex = mediaCodec.dequeueInputBuffer(50000);
-        Log.d(TAG, "audioDecoder extractorInputBuffer: inputIndex "+inputIndex);
+        Log.d(TAG, "audioDecoder extractorInputBuffer: inputIndex " + inputIndex);
         if (inputIndex >= 0) {
             ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
             long sampleTime = mediaExtractor.getSampleTime();
             int sampleSize = mediaExtractor.readSampleData(inputBuffer, 0);
-            Log.d(TAG, "audioDecoder extractorInputBuffer: sampleTime "+sampleTime+" sampleSize "+sampleSize);
+            Log.d(TAG, "audioDecoder extractorInputBuffer: sampleTime " + sampleTime + " sampleSize " + sampleSize);
             if (mediaExtractor.advance()) {
                 mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, 0);
                 Log.d(TAG, "audioDecoder extractorInputBuffer: advance ");
@@ -419,7 +422,7 @@ public class VideoCrop {
 
     private void encodeInputBuffer(ByteBuffer buffer, MediaCodec mediaCodec, MediaCodec.BufferInfo info) {
         int inputIndex = mediaCodec.dequeueInputBuffer(50000);
-        Log.d(TAG, "audioDecoder encodeInputBuffer:inputIndex "+inputIndex);
+        Log.d(TAG, "audioDecoder encodeInputBuffer:inputIndex " + inputIndex);
         if (inputIndex >= 0) {
             ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
             inputBuffer.clear();
@@ -485,8 +488,8 @@ public class VideoCrop {
     private synchronized void initMuxer() {
 //        if (videoInit && audioInit) {
         Log.d(TAG, "initMuxer: ");
-            muxerStart = true;
-            mediaMuxer.start();
+        muxerStart = true;
+        mediaMuxer.start();
 //        }
     }
 

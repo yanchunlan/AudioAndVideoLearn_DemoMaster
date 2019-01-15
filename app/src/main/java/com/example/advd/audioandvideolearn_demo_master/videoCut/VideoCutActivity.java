@@ -106,12 +106,12 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
 
                     @Override
                     public void onError(String msg) {
-                        Log.d(TAG, "onError: ");
+                        Log.d(TAG, "onError: "+msg);
                     }
                 });
                 crop.videoCrop(path,
                         Environment.getExternalStorageDirectory().getAbsolutePath() + "/VideoCut.mp4",
-                        2*1000000, 8*1000000);
+                        2*1000000, 3*1000000);
             }
         }
     }

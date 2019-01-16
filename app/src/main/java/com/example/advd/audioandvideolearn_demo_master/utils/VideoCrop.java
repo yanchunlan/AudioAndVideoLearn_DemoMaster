@@ -198,7 +198,7 @@ public class VideoCrop {
                             if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                                 info.size = 0;
                                 Log.d(TAG, "run: videoDecoder size==0");
-//                                videoDecoder.releaseOutputBuffer(outIndex, false);
+                                videoDecoder.releaseOutputBuffer(outIndex, false);
                             }
                             if (info.size != 0) {
                                 Log.d(TAG, "run: videoDecoder size!=0");
@@ -270,7 +270,7 @@ public class VideoCrop {
                             if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                                 info.size = 0;
                                 Log.d(TAG, "run: videoEncode size==0");
-//                                videoEncode.releaseOutputBuffer(outIndex, false);
+                                videoEncode.releaseOutputBuffer(outIndex, false);
                             }
                             if (info.size != 0) {
                                 Log.d(TAG, "run: videoEncode size!=0");

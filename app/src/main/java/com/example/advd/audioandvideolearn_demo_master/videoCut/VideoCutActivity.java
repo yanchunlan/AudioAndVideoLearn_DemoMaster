@@ -14,7 +14,6 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.example.advd.audioandvideolearn_demo_master.R;
-import com.example.advd.audioandvideolearn_demo_master.opensles1.OpenSLESActivity;
 import com.example.advd.audioandvideolearn_demo_master.utils.GetPathFromUri4kitkat;
 import com.example.advd.audioandvideolearn_demo_master.utils.PermissionUtils;
 import com.example.advd.audioandvideolearn_demo_master.utils.VideoCrop;
@@ -24,6 +23,10 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
     private static final int REQUEST_CODE_PERMISSIONS = 1001;
 
     private Button mButton;
+    private Button mButton1;
+
+    private VideoCrop crop;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +67,9 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
 
     private void initView() {
         mButton = (Button) findViewById(R.id.button);
-
+        mButton1 = (Button) findViewById(R.id.button1);
         mButton.setOnClickListener(this);
+        mButton1.setOnClickListener(this);
     }
 
     @Override
@@ -77,6 +81,11 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 startActivityForResult(intent, 1);
                 break;
+            case R.id.button1:
+                if (crop != null) {
+                    crop.stop();
+                }
+                break;
         }
     }
 
@@ -87,7 +96,7 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
             String path = getRealFilePath(data.getData());
             if (path != null) {
                 Log.d(TAG, "onActivityResult: path: " + path);
-                VideoCrop crop = new VideoCrop();
+                crop = new VideoCrop();
                 crop.setEncoderListener(new VideoCrop.OnEncoderListener() {
                     @Override
                     public void onStart() {
@@ -95,23 +104,23 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
                     }
 
                     @Override
-                    public void onStop() {
-                        Log.d(TAG, "onStop: ");
+                    public void onComplete(String path) {
+                        Log.d(TAG, "onComplete: "+path);
                     }
 
                     @Override
                     public void onProgress(int progress) {
-                        Log.d(TAG, "onProgress: "+progress);
+                        Log.d(TAG, "onProgress: " + progress);
                     }
 
                     @Override
                     public void onError(String msg) {
-                        Log.d(TAG, "onError: "+msg);
+                        Log.d(TAG, "onError: " + msg);
                     }
                 });
-                crop.videoCrop(path,
+                crop.start(path,
                         Environment.getExternalStorageDirectory().getAbsolutePath() + "/VideoCut.mp4",
-                        2*1000000, 3*1000000);
+                        0 * 1000000, 53 * 1000000);
             }
         }
     }

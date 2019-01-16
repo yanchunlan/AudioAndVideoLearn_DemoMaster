@@ -4,11 +4,11 @@ import android.annotation.TargetApi;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import android.media.MediaMetadataRetriever;
 import android.media.MediaMuxer;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.File;
@@ -24,27 +24,27 @@ import java.nio.ByteBuffer;
 public class VideoCrop {
     private static final String TAG = "VideoCrop";
 
-    private MediaExtractor videoExtractor;
-    private MediaCodec videoDecoder;
-    private MediaCodec videoEncode;
+    private MediaExtractor videoExtractor = null;
+    private MediaCodec videoDecoder = null;
+    private MediaCodec videoEncode = null;
 
-    private MediaExtractor audioExtractor;
-    private MediaCodec audioDecoder;
-    private MediaCodec audioEncode;
+    private MediaExtractor audioExtractor = null;
+    private MediaCodec audioDecoder = null;
+    private MediaCodec audioEncode = null;
 
 
-    private MediaMetadataRetriever metadataRetriever;
-    private MediaMuxer mediaMuxer;
+    private MediaMuxer mediaMuxer = null;
     private int videoTrackIndex = -1;
     private int audioTrackIndex = -1;
 
 
-    private Handler videoDecoderHandler;
-    private Handler videoEncodeHandler;
-    private Handler audioDecoderHandler;
-    private Handler audioEncodeHandler;
+    private Handler videoDecoderHandler = null;
+    private Handler videoEncodeHandler = null;
+    private Handler audioDecoderHandler = null;
+    private Handler audioEncodeHandler = null;
 
 
+    private String outputVideoPath = null;
     private long startTime = 0;
     private long endTime = 0;
 
@@ -55,6 +55,7 @@ public class VideoCrop {
     private boolean muxerStart = false;
     private boolean videoInit = false;
     private boolean audioInit = false;
+    private boolean exit = false;
 
 
     public VideoCrop() {
@@ -76,7 +77,19 @@ public class VideoCrop {
         audioEncodeHandler = new Handler(audioEncodeThread.getLooper());
     }
 
-    public void videoCrop(String inputVideoPath, String outputVideoPath, long startTime, long endTime) {
+    public void start(String inputVideoPath, String outputVideoPath, long startTime, long endTime) {
+        if (TextUtils.isEmpty(inputVideoPath)) {
+            if (encoderListener != null) {
+                encoderListener.onError("inputVideoPath is null");
+            }
+            return;
+        }
+        if (TextUtils.isEmpty(outputVideoPath)) {
+            if (encoderListener != null) {
+                encoderListener.onError("outputVideoPath is null");
+            }
+            return;
+        }
         File inputFile = new File(inputVideoPath);
         if (!inputFile.exists()) {
             if (encoderListener != null) {
@@ -94,6 +107,13 @@ public class VideoCrop {
             }
             outputFile.delete();
         }
+        this.outputVideoPath = outputVideoPath;
+        if (startTime < 0 || endTime < 0) {
+            if (encoderListener != null) {
+                encoderListener.onError("startTime or endTime Less than 0");
+            }
+            return;
+        }
         if (startTime >= endTime) {
             if (encoderListener != null) {
                 encoderListener.onError("startTime more than the endTime");
@@ -103,8 +123,6 @@ public class VideoCrop {
         this.startTime = startTime;
         this.endTime = endTime;
 
-        metadataRetriever = new MediaMetadataRetriever();
-        metadataRetriever.setDataSource(inputVideoPath);
 
         videoExtractor = new MediaExtractor();
         audioExtractor = new MediaExtractor();
@@ -116,7 +134,7 @@ public class VideoCrop {
 
             initAudioMediaCodec();
             initVideoMediaCodec();
-            start();
+            startVideoCrop();
         } catch (IOException e) {
             e.printStackTrace();
             if (encoderListener != null) {
@@ -125,7 +143,11 @@ public class VideoCrop {
         }
     }
 
-    private void start() {
+    public void stop() {
+        exit = true;
+    }
+
+    private void startVideoCrop() {
         Log.d(TAG, "start: startTime " + startTime + " endTime " + endTime);
         if (encoderListener != null) {
             encoderListener.onStart();
@@ -133,19 +155,22 @@ public class VideoCrop {
         muxerStart = false;
         videoInit = false;
         audioInit = false;
-        // 暂时不需要了
-//        if (metadataRetriever != null) {
-//            metadataRetriever.release();
-//            metadataRetriever = null;
-//        }
+        exit = false;
 
         // video
         if (videoDecoder != null && videoEncode != null) {
+            if (audioDecoder == null && audioEncode == null) { // 单视频，就需要开启音频条件
+                audioInit = true;
+            }
             videoDecoderHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
                     while (true) {
+                        if (exit) {
+                            break;
+                        }
+
                         // 等待混合开启之后，开始解码音频
                         // 流程  音频编码 audioInit=true--> 视频解码开启 -> 视频编码 videoInit=true -> 开始音频解码
                         if (!audioInit) {  // 音频没有混合就不开始解码
@@ -160,12 +185,13 @@ public class VideoCrop {
                         }
 
                         // decoder input
-                        extractorVideoInputBuffer(videoExtractor, videoDecoder);
+                        MediaCodecUtils.extractorInputBuffer(videoExtractor, videoDecoder);
 
                         // decoder output
+                        info.set(0, 0, 0, 0);
                         int outIndex = videoDecoder.dequeueOutputBuffer(info, 10000);
-                        Log.d(TAG, "run: videoDecoder  outIndex "+outIndex+" presentationTimeUs "
-                                +info.presentationTimeUs+" size "+info.size+" flag "+info.flags+" offset "+info.offset);
+                        Log.d(TAG, "run: videoDecoder  outIndex " + outIndex + " presentationTimeUs "
+                                + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
 
                         if (outIndex >= 0) {
                             ByteBuffer buffer = MediaCodecUtils.getOutputBuffer(videoDecoder, outIndex);
@@ -179,18 +205,21 @@ public class VideoCrop {
                                 if (info.presentationTimeUs >= startTime) {
                                     buffer.position(info.offset);
                                     buffer.limit(info.offset + info.size);
+                                    if (info.presentationTimeUs > endTime) {
+                                        info.flags = MediaCodec.BUFFER_FLAG_END_OF_STREAM; // 传递结束标识
+                                    }
                                     Log.d(TAG, "run: videoDecoder presentationTimeUs "
-                                            +info.presentationTimeUs+" size "+info.size+" flag "+info.flags+" offset "+info.offset);
-
+                                            + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
 
                                     // encode input
-                                    encodeInputBuffer(buffer, videoEncode, info);
+                                    if (videoEncode != null) {
+                                        MediaCodecUtils.encodeInputBuffer(buffer, videoEncode, info);
+                                    }
                                 }
                                 videoDecoder.releaseOutputBuffer(outIndex, false);
                                 if (info.presentationTimeUs > endTime) {
-//                                    videoEncode.signalEndOfInputStream();
                                     Log.d(TAG, "run: videoDecoder  > endTime");
-
+//                                    videoEncode.signalEndOfInputStream();
                                     break;
                                 }
                             }
@@ -198,7 +227,14 @@ public class VideoCrop {
 
                         if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                             Log.d(TAG, "run: videoDecoder  info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0");
-
+//                            videoEncode.signalEndOfInputStream(); // 如果是surfaceView就可以控制停止，如果不是，只有自己传递结束标识
+                            // 即使结束了也要传递结束标识   目的是把结束标识传递到解码器，控制解码停止
+                            ByteBuffer buffer = MediaCodecUtils.getOutputBuffer(videoDecoder, outIndex);
+                            buffer.position(info.offset);
+                            buffer.limit(info.offset + info.size);
+                            if (videoEncode != null) {
+                                MediaCodecUtils.encodeInputBuffer(buffer, videoEncode, info);
+                            }
                             break;
                         }
                     }
@@ -220,10 +256,15 @@ public class VideoCrop {
                 public void run() {
                     MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
                     while (true) {
+                        if (exit && videoDecoder == null) {
+                            break;
+                        }
+
+                        info.set(0, 0, 0, 0);
                         int outIndex = videoEncode.dequeueOutputBuffer(info, 1000);
-                        Log.d(TAG, "run: videoEncode  outIndex "+outIndex+" presentationTimeUs "
-                                +info.presentationTimeUs+" size "+info.size+" flag "
-                                +info.flags+" offset "+info.offset);
+                        Log.d(TAG, "run: videoEncode  outIndex " + outIndex + " presentationTimeUs "
+                                + info.presentationTimeUs + " size " + info.size + " flag "
+                                + info.flags + " offset " + info.offset);
                         if (outIndex >= 0) {
                             ByteBuffer buffer = MediaCodecUtils.getOutputBuffer(videoEncode, outIndex);
                             if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
@@ -239,8 +280,8 @@ public class VideoCrop {
                                     buffer.position(info.offset);
                                     buffer.limit(info.offset + info.size);
                                     Log.d(TAG, "run: videoEncode presentationTimeUs "
-                                            +info.presentationTimeUs+" size "+info.size
-                                            +" flag "+info.flags+" offset "+info.offset);
+                                            + info.presentationTimeUs + " size " + info.size
+                                            + " flag " + info.flags + " offset " + info.offset);
 
 
                                     // write
@@ -286,6 +327,10 @@ public class VideoCrop {
                 public void run() {
                     MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
                     while (true) {
+                        if (exit) {
+                            break;
+                        }
+
                         // 等待混合开启之后，开始解码音频
                         // 流程  音频编码 audioInit=true--> 视频解码开启 -> 视频编码 videoInit=true -> 开始音频解码
                         if (!muxerStart) {
@@ -301,7 +346,7 @@ public class VideoCrop {
 
 
                         // decoder input
-                        extractorInputBuffer(audioExtractor, audioDecoder);
+                        MediaCodecUtils.extractorInputBuffer(audioExtractor, audioDecoder);
 
                         // decoder output
                         int outIndex = audioDecoder.dequeueOutputBuffer(info, 10000);
@@ -318,14 +363,16 @@ public class VideoCrop {
                             }
                             if (info.size != 0) {
 //                                Log.d(TAG, "run: audioDecoder size!=0");
-                                if(info.presentationTimeUs >= startTime){
+                                if (info.presentationTimeUs >= startTime) {
                                     buffer.position(info.offset);
                                     buffer.limit(info.offset + info.size);
 //                                    Log.d(TAG, "run: audioDecoder presentationTimeUs "
 //                                            + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
 
                                     // encode input
-                                    encodeAudioInputBuffer(buffer, audioEncode, info);
+                                    if (audioEncode != null) {
+                                        MediaCodecUtils.encodeInputBuffer(buffer, audioEncode, info);
+                                    }
                                 }
                                 audioDecoder.releaseOutputBuffer(outIndex, false);
                                 if (info.presentationTimeUs > endTime) {
@@ -356,6 +403,10 @@ public class VideoCrop {
                 public void run() {
                     MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
                     while (true) {
+                        if (exit && audioDecoder == null) {
+                            break;
+                        }
+
                         int outIndex = audioEncode.dequeueOutputBuffer(info, 1000);
 //                        Log.d(TAG, "run: audioEncode  outIndex " + outIndex + " presentationTimeUs "
 //                                + info.presentationTimeUs + " size " + info.size + " flag " + info.flags + " offset " + info.offset);
@@ -410,98 +461,26 @@ public class VideoCrop {
         }
     }
 
-    private void extractorVideoInputBuffer(MediaExtractor mediaExtractor, MediaCodec mediaCodec) {
-        int inputIndex = mediaCodec.dequeueInputBuffer(50000);
-        Log.d(TAG, "videoDecoder extractorInputBuffer: inputIndex " + inputIndex);
-        if (inputIndex >= 0) {
-            ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
-            long sampleTime = mediaExtractor.getSampleTime();
-            int sampleSize = mediaExtractor.readSampleData(inputBuffer, 0);
-            Log.d(TAG, "videoDecoder extractorInputBuffer: sampleTime " + sampleTime + " sampleSize " + sampleSize);
-            if (mediaExtractor.advance()) {
-                Log.d(TAG, "videoDecoder extractorInputBuffer: advance ");
-                mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, 0);
-            } else {
-                if (sampleSize > 0) {
-                    Log.d(TAG, "videoDecoder extractorInputBuffer: >0 ");
-                    mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, 0);
-//                    mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                } else {
-                    Log.d(TAG, "videoDecoder extractorInputBuffer: <=0 ");
-//                    mediaCodec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                }
-            }
-        }
-    }
-
-    private void extractorInputBuffer(MediaExtractor mediaExtractor, MediaCodec mediaCodec) {
-        int inputIndex = mediaCodec.dequeueInputBuffer(50000);
-        Log.d(TAG, "audioDecoder extractorInputBuffer: inputIndex " + inputIndex);
-        if (inputIndex >= 0) {
-            ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
-            long sampleTime = mediaExtractor.getSampleTime();
-            int sampleSize = mediaExtractor.readSampleData(inputBuffer, 0);
-            Log.d(TAG, "audioDecoder extractorInputBuffer: sampleTime " + sampleTime + " sampleSize " + sampleSize);
-            if (mediaExtractor.advance()) {
-                mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, 0);
-                Log.d(TAG, "audioDecoder extractorInputBuffer: advance ");
-            } else {// 结束的数据
-                if (sampleSize > 0) {
-                    mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                    Log.d(TAG, "audioDecoder extractorInputBuffer: >0 ");
-                } else {// 结束了也要添加一个为0 的数据
-                    mediaCodec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                    Log.d(TAG, "audioDecoder extractorInputBuffer: <=0 ");
-                }
-            }
-        }
-    }
-
-    private void encodeInputBuffer(ByteBuffer buffer, MediaCodec mediaCodec, MediaCodec.BufferInfo info) {
-        int inputIndex = mediaCodec.dequeueInputBuffer(50000);
-        Log.d(TAG, "videoDecoder encodeInputBuffer:inputIndex " + inputIndex);
-        if (inputIndex >= 0) {
-            ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
-            inputBuffer.clear();
-            inputBuffer.put(buffer);
-            if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) { // 结束的数据
-                Log.d(TAG, "videoDecoder encodeInputBuffer: !=0");
-                mediaCodec.queueInputBuffer(inputIndex, 0, buffer.limit(), info.presentationTimeUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-            } else { // 正常数据
-                Log.d(TAG, "videoDecoder encodeInputBuffer: ==0");
-                mediaCodec.queueInputBuffer(inputIndex, 0, buffer.limit(), info.presentationTimeUs, 0);
-            }
-
-        }
-    }
- private void encodeAudioInputBuffer(ByteBuffer buffer, MediaCodec mediaCodec, MediaCodec.BufferInfo info) {
-        int inputIndex = mediaCodec.dequeueInputBuffer(50000);
-        if (inputIndex >= 0) {
-            ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
-            inputBuffer.clear();
-            inputBuffer.put(buffer);
-            if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) { // 结束的数据
-                mediaCodec.queueInputBuffer(inputIndex, 0, buffer.limit(), info.presentationTimeUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-            } else { // 正常数据
-                mediaCodec.queueInputBuffer(inputIndex, 0, buffer.limit(), info.presentationTimeUs, 0);
-            }
-
-        }
-    }
-
     private void initVideoMediaCodec() throws IOException {
         for (int i = 0; i < videoExtractor.getTrackCount(); i++) {
             final MediaFormat format = videoExtractor.getTrackFormat(i);
             String mime = format.getString(MediaFormat.KEY_MIME);
             if (mime.startsWith("video/")) {
                 videoExtractor.selectTrack(i);
-                if (startTime != 0) {
-                    videoExtractor.seekTo(startTime, i);
+//                if (startTime != 0) { // seek 之后就不能读出视频的位置了
+//                    videoExtractor.seekTo(startTime, i);
+//                }
+                long videoTotalTime = format.getLong(MediaFormat.KEY_DURATION);
+                if (endTime == 0) {
+                    this.endTime = videoTotalTime;
+                } else if (endTime > videoTotalTime) { // 取最小值
+                    this.endTime = videoTotalTime;
                 }
+
                 videoDecoder = MediaCodec.createDecoderByType(mime);
                 videoDecoder.configure(format, null, null, 0 /* Decoder */);
 
-                videoEncode = MediaCodecUtils.createVideoEnCodec(metadataRetriever, format, mime);
+                videoEncode = MediaCodecUtils.createVideoEnCodec(format, mime);
 
                 videoDecoder.start();
                 videoEncode.start();
@@ -519,15 +498,20 @@ public class VideoCrop {
                 if (startTime != 0) {
                     audioExtractor.seekTo(startTime, i);
                 }
+                long audioTotalTime = format.getLong(MediaFormat.KEY_DURATION);
+                if (endTime == 0) {
+                    this.endTime = audioTotalTime;
+                }
+               /* else if (endTime > audioTotalTime) {  // 取最小值
+                    this.endTime = audioTotalTime;
+                }*/
+
                 audioDecoder = MediaCodec.createDecoderByType(mime);
                 audioDecoder.configure(format, null, null, 0 /* Decoder */);
 
                 audioEncode = MediaCodecUtils.createAudioEnCodec(format, mime);
 
                 audioExtractor.seekTo(startTime, i);
-                if (endTime == 0) {
-                    this.endTime = format.getLong(MediaFormat.KEY_DURATION);
-                }
 
                 audioDecoder.start();
                 audioEncode.start();
@@ -537,41 +521,46 @@ public class VideoCrop {
     }
 
     private synchronized void initMuxer() {
-//        if (videoInit && audioInit) {
-        Log.d(TAG, "initMuxer: ");
-        muxerStart = true;
-        mediaMuxer.start();
-//        }
+        if (videoInit && audioInit) {
+            Log.d(TAG, "initMuxer: ");
+            muxerStart = true;
+            mediaMuxer.start();
+        }
     }
 
     private synchronized void muxerRelease() {
-        if (
-                audioEncode == null &&
-                videoEncode == null
-                        && mediaMuxer != null) {
+        if (audioEncode == null && videoEncode == null && mediaMuxer != null) {
             Log.d(TAG, "muxerRelease:");
             mediaMuxer.stop();
             mediaMuxer.release();
             mediaMuxer = null;
+
+            if (exit) { // 取消的任务，删除output资源
+                File f = new File(outputVideoPath);
+                if (f.exists()) {
+                    f.delete();
+                }
+                outputVideoPath = null;
+            }
             if (encoderListener != null) {
-                encoderListener.onStop();
+                encoderListener.onComplete(outputVideoPath);
             }
 
-            release();
+            // release
+            videoTrackIndex = -1;
+            audioTrackIndex = -1;
+
+            outputVideoPath = null;
+            startTime = 0;
+            endTime = 0;
+
+            muxerStart = false;
+            videoInit = false;
+            audioInit = false;
+            exit = false;
         }
     }
 
-    public void release() {
-        videoTrackIndex = -1;
-        audioTrackIndex = -1;
-
-        startTime = 0;
-        endTime = 0;
-
-        muxerStart = false;
-        videoInit = false;
-        audioInit = false;
-    }
 
     private OnEncoderListener encoderListener;
 
@@ -582,7 +571,7 @@ public class VideoCrop {
     public interface OnEncoderListener {
         void onStart();
 
-        void onStop();
+        void onComplete(String outPutPath);
 
         void onProgress(int progress);
 

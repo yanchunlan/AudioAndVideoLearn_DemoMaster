@@ -4,8 +4,8 @@ import android.annotation.TargetApi;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
+import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import android.media.MediaMetadataRetriever;
 import android.os.Build;
 
 import java.io.IOException;
@@ -84,24 +84,11 @@ public class MediaCodecUtils {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    public static MediaCodec createVideoEnCodec(MediaMetadataRetriever retriever, MediaFormat format, String mime) throws IOException {
-        int videoRotation = 0;
-        int mInputVideoWidth = 0;     //输入视频的宽度
-        int mInputVideoHeight = 0;    //输入视频的高度
+    public static MediaCodec createVideoEnCodec(MediaFormat format, String mime) throws IOException {
+        int mInputVideoWidth = format.getInteger(MediaFormat.KEY_WIDTH);
+        int mInputVideoHeight = format.getInteger(MediaFormat.KEY_HEIGHT);
 
-        String rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
-        if (rotation != null) {
-            videoRotation = Integer.valueOf(rotation);
-        }
-        if (videoRotation == 90 || videoRotation == 270) {
-            mInputVideoHeight = format.getInteger(MediaFormat.KEY_WIDTH);
-            mInputVideoWidth = format.getInteger(MediaFormat.KEY_HEIGHT);
-        } else {
-            mInputVideoWidth = format.getInteger(MediaFormat.KEY_WIDTH);
-            mInputVideoHeight = format.getInteger(MediaFormat.KEY_HEIGHT);
-        }
-
-        int BIT_RATE = mInputVideoWidth * mInputVideoHeight * 5;
+        int BIT_RATE = mInputVideoWidth * mInputVideoHeight * 3;
         MediaFormat mediaFormat = MediaFormat.createVideoFormat(mime, mInputVideoWidth, mInputVideoHeight);
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, format.getInteger(MediaFormat.KEY_FRAME_RATE));
@@ -114,6 +101,40 @@ public class MediaCodecUtils {
         MediaCodec videoEncode = MediaCodec.createEncoderByType(mime);
         videoEncode.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         return videoEncode;
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public static void extractorInputBuffer(MediaExtractor mediaExtractor, MediaCodec mediaCodec) {
+        int inputIndex = mediaCodec.dequeueInputBuffer(50000);
+        if (inputIndex >= 0) {
+            ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
+            long sampleTime = mediaExtractor.getSampleTime();
+            int sampleSize = mediaExtractor.readSampleData(inputBuffer, 0);
+            if (mediaExtractor.advance()) {
+                mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, 0);
+            } else {// 结束的数据
+                if (sampleSize > 0) {
+                    mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                } else {// 结束了也要添加一个为0 的数据
+                    mediaCodec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                }
+            }
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public static void encodeInputBuffer(ByteBuffer buffer, MediaCodec mediaCodec, MediaCodec.BufferInfo info) {
+        int inputIndex = mediaCodec.dequeueInputBuffer(50000);
+        if (inputIndex >= 0) {
+            ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
+            inputBuffer.clear();
+            inputBuffer.put(buffer);
+            if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) { // 结束的数据
+                mediaCodec.queueInputBuffer(inputIndex, 0, buffer.limit(), info.presentationTimeUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+            } else { // 正常数据
+                mediaCodec.queueInputBuffer(inputIndex, 0, buffer.limit(), info.presentationTimeUs, 0);
+            }
+        }
     }
 
     public static ByteBuffer getInputBuffer(MediaCodec codec, int index) {

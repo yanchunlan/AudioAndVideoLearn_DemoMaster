@@ -10,6 +10,13 @@
         android:id="@+id/button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="剪切"
+        android:text="开始剪切视频"
+       />
+    <Button
+        app:layout_constraintLeft_toRightOf="@id/button"
+        android:id="@+id/button1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="取消剪切视频"
        />
 </android.support.constraint.ConstraintLayout>

@@ -96,7 +96,7 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
             String path = getRealFilePath(data.getData());
             if (path != null) {
                 Log.d(TAG, "onActivityResult: path: " + path);
-                crop = new VideoCrop();
+                crop = new VideoCrop(this);
                 crop.setEncoderListener(new VideoCrop.OnEncoderListener() {
                     @Override
                     public void onStart() {

@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
  * desc:    视频裁剪
  */
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-public class VideoCrop {
+public class VideoCrop2 {
     private static final String TAG = "VideoCrop";
 
     private Resources resources;
@@ -64,7 +64,7 @@ public class VideoCrop {
     private boolean isComplete = false;
 
 
-    public VideoCrop(Context context) {
+    public VideoCrop2(Context context) {
         this.resources = context.getApplicationContext().getResources();
         HandlerThread videoDecoderThread = new HandlerThread("videoDecoderMediaCodec");
         videoDecoderThread.start();

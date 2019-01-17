@@ -7,6 +7,7 @@ import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.os.Build;
+import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -17,6 +18,7 @@ import java.nio.ByteBuffer;
  * desc:
  */
 public class MediaCodecUtils {
+    private static final String TAG = "MediaCodecUtils";
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     public static int checkColorFormat(String mime) {
@@ -85,8 +87,11 @@ public class MediaCodecUtils {
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     public static MediaCodec createVideoEnCodec(MediaFormat format, String mime) throws IOException {
+        // 0   1280 720   ok
+        // 0  1692  720    花屏
         int mInputVideoWidth = format.getInteger(MediaFormat.KEY_WIDTH);
         int mInputVideoHeight = format.getInteger(MediaFormat.KEY_HEIGHT);
+        Log.d(TAG, "createVideoEnCodec: mInputVideoWidth " + mInputVideoWidth + " mInputVideoHeight  " + mInputVideoHeight);
 
         int BIT_RATE = mInputVideoWidth * mInputVideoHeight * 3;
         MediaFormat mediaFormat = MediaFormat.createVideoFormat(mime, mInputVideoWidth, mInputVideoHeight);

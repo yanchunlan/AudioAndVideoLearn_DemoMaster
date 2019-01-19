@@ -17,6 +17,7 @@ import com.example.advd.audioandvideolearn_demo_master.R;
 import com.example.advd.audioandvideolearn_demo_master.utils.GetPathFromUri4kitkat;
 import com.example.advd.audioandvideolearn_demo_master.utils.PermissionUtils;
 import com.example.advd.audioandvideolearn_demo_master.utils.VideoCrop;
+import com.example.advd.audioandvideolearn_demo_master.utils.VideoCrop2;
 
 public class VideoCutActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "VideoCutActivity";
@@ -25,7 +26,7 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
     private Button mButton;
     private Button mButton1;
 
-    private VideoCrop crop;
+    private VideoCrop2 crop;
 
 
     @Override
@@ -96,8 +97,8 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
             String path = getRealFilePath(data.getData());
             if (path != null) {
                 Log.d(TAG, "onActivityResult: path: " + path);
-                crop = new VideoCrop(this);
-                crop.setEncoderListener(new VideoCrop.OnEncoderListener() {
+                crop = new VideoCrop2(this);
+                crop.setEncoderListener(new VideoCrop2.OnEncoderListener() {
                     @Override
                     public void onStart() {
                         Log.d(TAG, "onStart: ");
@@ -120,7 +121,7 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
                 });
                 crop.start(path,
                         Environment.getExternalStorageDirectory().getAbsolutePath() + "/VideoCut.mp4",
-                        0 * 1000000, 53 * 1000000);
+                        2 * 1000000, 4 * 1000000);
             }
         }
     }

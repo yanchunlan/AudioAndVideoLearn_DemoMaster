@@ -109,6 +109,46 @@ public class MediaCodecUtils {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public static MediaCodec createVideoEnCodec(MediaFormat format, String mime,int width,int height) throws IOException {
+        int BIT_RATE = width * height * 3;
+        MediaFormat mediaFormat = MediaFormat.createVideoFormat(mime, width, height);
+        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
+        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, format.getInteger(MediaFormat.KEY_FRAME_RATE));
+        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,  MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+        if (format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {
+            mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE));
+        }
+
+        MediaCodec videoEncode = MediaCodec.createEncoderByType(mime);
+        videoEncode.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        return videoEncode;
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public static int extractorVideoInputBuffer(MediaExtractor mediaExtractor, MediaCodec mediaCodec) {
+        int inputIndex = mediaCodec.dequeueInputBuffer(50000);
+        if (inputIndex >= 0) {
+            ByteBuffer inputBuffer = MediaCodecUtils.getInputBuffer(mediaCodec, inputIndex);
+            long sampleTime = mediaExtractor.getSampleTime();
+            int sampleSize = mediaExtractor.readSampleData(inputBuffer, 0);
+            if (mediaExtractor.advance()) {
+                mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, 0);
+                return 1;
+            } else {// 结束的数据
+                if (sampleSize > 0) {
+                    mediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, sampleTime, 0);
+                    return 1;
+                } else {
+                    mediaCodec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                    return -1;
+                }
+            }
+        }
+        return 0;
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     public static void extractorInputBuffer(MediaExtractor mediaExtractor, MediaCodec mediaCodec) {
         int inputIndex = mediaCodec.dequeueInputBuffer(50000);
         if (inputIndex >= 0) {

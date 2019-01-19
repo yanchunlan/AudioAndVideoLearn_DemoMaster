@@ -21,3 +21,5 @@ openSLES2:音频的播放<br>
 	    1.播放assets文件
 	    2.从C++层播放PCM数据文件
         3.从java层获取PCM数据,SLES播放
+        
+videoCut:利用MediaCodec做视频裁剪功能<br>  

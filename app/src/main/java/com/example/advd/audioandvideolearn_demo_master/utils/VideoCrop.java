@@ -307,10 +307,10 @@ public class VideoCrop {
                                     encoderListener.onProgress((int) ((presentationTimeUs - startTime) * 100.0f / (endTime - startTime)));
                                 }
                                 videoEncode.releaseOutputBuffer(outIndex, false);
-                                if (presentationTimeUs > endTime) {
+                                /*if (presentationTimeUs > endTime) {
 //                                    Log.d(TAG, "run: videoEncode  > endTime");
                                     break;
-                                }
+                                }*/
                             }
                         } else if (outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                             if (mediaMuxer != null && videoTrackIndex == -1) { // 保证执行一次

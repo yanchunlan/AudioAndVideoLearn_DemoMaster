@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 /**
  * author:  ycl
  * date:  2019/1/14 10:29
- * desc:    视频裁剪
+ * desc:    视频裁剪  （ 部分视频裁剪之后花屏的问题 ， 有bug 的类，ok的是VideoCrop2）
  */
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class VideoCrop {

@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * author:  ycl
  * date:  2019/1/14 10:29
- * desc:    视频裁剪
+ * desc:    视频裁剪  （为什么存在VideoCrop2， 就是为了解码仅仅是解码编码视频，部分视频裁剪之后花屏的问题）
  */
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class VideoCrop2 {

@@ -2,6 +2,7 @@
 // Created by pc on 2019/1/10.
 //
 
+#include <cstdlib>
 #include "WlQueue.h"
 
 WlQueue::WlQueue() {

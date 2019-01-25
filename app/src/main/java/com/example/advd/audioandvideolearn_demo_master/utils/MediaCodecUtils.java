@@ -109,13 +109,40 @@ public class MediaCodecUtils {
     }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    public static MediaCodec createVideoEnCodec(MediaFormat format, String mime,int width,int height) throws IOException {
-        int BIT_RATE = width * height * 3;
+    public static MediaCodec createVideoEnCodec(MediaFormat format, String mime, int width, int height, int bitrate) throws IOException {
         MediaFormat mediaFormat = MediaFormat.createVideoFormat(mime, width, height);
-        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
-        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, format.getInteger(MediaFormat.KEY_FRAME_RATE));
-        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,  MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+        if (format.containsKey(MediaFormat.KEY_BIT_RATE)) {
+            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, format.getInteger(MediaFormat.KEY_BIT_RATE));
+            Log.d(TAG, "createVideoEnCodec: has  key_bit_rate " + format.getInteger(MediaFormat.KEY_BIT_RATE));
+        } else {
+            if (bitrate != 0) {
+                Log.d(TAG, "createVideoEnCodec:  hasNot  from receiver bitrate " + bitrate);  // 256000  14745600
+                if (bitrate < 1000000) {
+                    bitrate *= 1.5;
+                    Log.d(TAG, "createVideoEnCodec:  hasNot  from receiver bitrate x1.5 " + bitrate);
+                }
+                mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
+            } else {
+                int BIT_RATE = width * height * 2 * 8;
+                mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
+                Log.d(TAG, "createVideoEnCodec:  hasNot  key_bit_rate " + BIT_RATE);  // 256000  14745600
+            }
+        }
+        if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) {
+            mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, format.getInteger(MediaFormat.KEY_FRAME_RATE));
+            Log.d(TAG, "createVideoEnCodec: has  key_frame_rate " + format.getInteger(MediaFormat.KEY_FRAME_RATE));
+        } else {
+            mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 24);
+            Log.d(TAG, "createVideoEnCodec:  hasNot  key_frame_rate " + 24);
+        }
+        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+        if (format.containsKey(MediaFormat.KEY_I_FRAME_INTERVAL)) {
+            mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, format.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL));
+            Log.d(TAG, "createVideoEnCodec: has  key_i_frame_interval " + format.getInteger(MediaFormat.KEY_I_FRAME_INTERVAL));
+        } else {
+            mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+            Log.d(TAG, "createVideoEnCodec:  hasNot  key_i_frame_interval " + 1);
+        }
         if (format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {
             mediaFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE));
         }

@@ -121,7 +121,7 @@ public class VideoCutActivity extends AppCompatActivity implements View.OnClickL
                 });
                 crop.start(path,
                         Environment.getExternalStorageDirectory().getAbsolutePath() + "/VideoCut.mp4",
-                        2 * 1000000, 4 * 1000000);
+                        2 * 1000000, 4 * 1000000,false);
             }
         }
     }
